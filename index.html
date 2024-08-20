@@ -1,56 +1,33 @@
 <html>
     <head>
         <script>
-"use strict";
-class Field {
-    get linesCompleted() {
-        let count = 0;
-        for (let i = 0; i < this.lines.length; i++) {
-            if (this.lines[i].isComplete) {
-                count++;
-            }
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
         }
-        return count;
     }
-    // a cell is redundant if it does not complete any line
-    get hasRedundantCells() {
-        outer: for (const cell of this.cells) {
-            if (!cell.used) {
-                continue;
-            }
-            for (const line of cell.lines) {
-                if (line.isComplete) {
-                    continue outer;
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-    get usedCellCount() {
-        let count = 0;
-        for (const cell of this.cells) {
-            if (cell.used) {
-                count++;
-            }
-        }
-        return count;
-    }
-    constructor(size = 5) {
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
+var _a;
+var Field = /** @class */ (function () {
+    function Field(size) {
+        if (size === void 0) { size = 5; }
         this.size = size;
         this.rows = [];
         this.columns = [];
         this.diagonals = [new Line(), new Line()];
         this.cells = [];
-        for (let i = 0; i < size; i++) {
-            const row = new Line();
+        for (var i = 0; i < size; i++) {
+            var row = new Line();
             this.rows.push(row);
-            for (let j = 0; j < size; j++) {
+            for (var j = 0; j < size; j++) {
                 if (i === 0) {
                     this.columns.push(new Line());
                 }
-                const column = this.columns[j];
-                const cell = new Cell(i * size + j + 1, this, row, column);
+                var column = this.columns[j];
+                var cell = new Cell(i * size + j + 1, this, row, column);
                 row.cells.push(cell);
                 column.cells.push(cell);
                 this.cells.push(cell);
@@ -66,60 +43,111 @@ class Field {
                 }
             }
         }
-        this.lines = [...this.columns, ...this.rows, ...this.diagonals];
+        this.lines = __spreadArray(__spreadArray(__spreadArray([], this.columns, true), this.rows, true), this.diagonals, true);
     }
-    reset() {
-        for (const cell of this.cells) {
+    Object.defineProperty(Field.prototype, "linesCompleted", {
+        get: function () {
+            var count = 0;
+            for (var i = 0; i < this.lines.length; i++) {
+                if (this.lines[i].isComplete) {
+                    count++;
+                }
+            }
+            return count;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Field.prototype, "hasRedundantCells", {
+        // a cell is redundant if it does not complete any line
+        get: function () {
+            outer: for (var _i = 0, _a = this.cells; _i < _a.length; _i++) {
+                var cell = _a[_i];
+                if (!cell.used) {
+                    continue;
+                }
+                for (var _b = 0, _c = cell.lines; _b < _c.length; _b++) {
+                    var line = _c[_b];
+                    if (line.isComplete) {
+                        continue outer;
+                    }
+                }
+                return true;
+            }
+            return false;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Field.prototype, "usedCellCount", {
+        get: function () {
+            var count = 0;
+            for (var _i = 0, _a = this.cells; _i < _a.length; _i++) {
+                var cell = _a[_i];
+                if (cell.used) {
+                    count++;
+                }
+            }
+            return count;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Field.prototype.reset = function () {
+        for (var _i = 0, _a = this.cells; _i < _a.length; _i++) {
+            var cell = _a[_i];
             cell.used = false;
         }
-    }
-    getRemainingMoves(targetPattern) {
-        let remainingMoves = 0;
-        for (let i = 0; i < this.cells.length; i++) {
+    };
+    Field.prototype.getRemainingMoves = function (targetPattern) {
+        var remainingMoves = 0;
+        for (var i = 0; i < this.cells.length; i++) {
             if (targetPattern.cells[i].used && !this.cells[i].used) {
                 remainingMoves++;
             }
         }
         return remainingMoves;
-    }
-    go(count = 16, makeMove) {
-        for (let move = 1; move <= count; move += 2) {
-            makeMove(this, move, count - move + 1);
-            getRandomFreeCell(this.cells).used = true;
-        }
-    }
-    clone() {
-        const clone = new Field(this.size);
-        for (let i = 0; i < this.cells.length; i++) {
+    };
+    Field.prototype.clone = function () {
+        var clone = new Field(this.size);
+        for (var i = 0; i < this.cells.length; i++) {
             clone.cells[i].used = this.cells[i].used;
         }
         return clone;
-    }
-    print() {
-        for (const row of this.rows) {
-            let output = '';
-            for (const cell of row.cells) {
+    };
+    Field.prototype.print = function () {
+        for (var _i = 0, _a = this.rows; _i < _a.length; _i++) {
+            var row = _a[_i];
+            var output = '';
+            for (var _b = 0, _c = row.cells; _b < _c.length; _b++) {
+                var cell = _c[_b];
                 output += cell.used ? 'x ' : 'o ';
             }
             console.log(output);
         }
-    }
-}
-class Line {
-    constructor() {
+    };
+    return Field;
+}());
+var Line = /** @class */ (function () {
+    function Line() {
         this.cells = [];
     }
-    get isComplete() {
-        for (let i = 0; i < this.cells.length; i++) {
-            if (!this.cells[i].used) {
-                return false;
+    Object.defineProperty(Line.prototype, "isComplete", {
+        get: function () {
+            for (var i = 0; i < this.cells.length; i++) {
+                if (!this.cells[i].used) {
+                    return false;
+                }
             }
-        }
-        return true;
-    }
-}
-class Cell {
-    constructor(id, field, row, column) {
+            return true;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    return Line;
+}());
+var Cell = /** @class */ (function () {
+    function Cell(id, field, row, column) {
         this.id = id;
         this.field = field;
         this.row = row;
@@ -129,37 +157,31 @@ class Cell {
         this.diagonals = [];
         this.lines.push(row, column);
     }
-    getLineCompletionDesc() {
-        let counts = [];
-        for (const line of this.lines) {
-            let lineCount = 0;
-            for (const cell of line.cells) {
+    Cell.prototype.getLineCompletionDesc = function () {
+        var counts = [];
+        for (var _i = 0, _a = this.lines; _i < _a.length; _i++) {
+            var line = _a[_i];
+            var lineCount = 0;
+            for (var _b = 0, _c = line.cells; _b < _c.length; _b++) {
+                var cell = _c[_b];
                 if (cell.used) {
                     lineCount++;
                 }
             }
             counts.push(lineCount);
         }
-        return counts.sort((a, b) => b - a);
-        // TODO rename and rethink?
-        // 
-        // test: avg used cells per line --> 24.8
-        // wie berücksichtigt man z.b. den fall: 2 lines 4 und 4; 3 lines 4, 3 und 3? --> naja, man braucht ja auch mehr ausstehende moves um die drei zu completen...
-        // test: was wenn man andersherum die zum completen notwendigen cells returnt? durchdenken... --> 24.5
-        // test: was wenn man immer nur 2 best lines compared? 3. line wäre ignored. das wäre zumindest vergleichbar --> 25.7
-        // test: was wenn man immer nur die beste line nimmt? --> 25.8
-        // test: was wenn man die hotcell statt best of best x% macht (z.b. top 10%, mit verschiedenen werten versuchen) --> 25.7
-        // test: was wenn man berücksichtigt, ob man die lines einer cell überhaupt mit den restlichen moves completen kann (bzw. restliche moves -1 usw) --> durch most completed bereits optimal abgedeckt
-    }
-    use() {
+        return counts.sort(function (a, b) { return b - a; });
+    };
+    Cell.prototype.use = function () {
         if (this.used) {
             throw new Error('Cell already used.');
         }
         this.used = true;
-    }
-}
+    };
+    return Cell;
+}());
 function getRandomFreeCell(cells) {
-    const freeCells = cells.filter(cell => !cell.used);
+    var freeCells = cells.filter(function (cell) { return !cell.used; });
     if (freeCells.length === 0) {
         return null;
     }
@@ -167,13 +189,14 @@ function getRandomFreeCell(cells) {
 }
 // returns unused cell which has the most complete lines
 function getMostCompleteCell(cells) {
-    let bestCell;
-    let bestCounts = [];
-    for (const cell of cells) {
+    var bestCell;
+    var bestCounts = [];
+    for (var _i = 0, cells_1 = cells; _i < cells_1.length; _i++) {
+        var cell = cells_1[_i];
         if (cell.used)
             continue;
-        const counts = cell.getLineCompletionDesc();
-        for (let i = 0; i < counts.length || i < bestCounts.length; i++) {
+        var counts = cell.getLineCompletionDesc();
+        for (var i = 0; i < counts.length || i < bestCounts.length; i++) {
             if (bestCounts[i] === undefined || counts[i] > bestCounts[i]) {
                 bestCounts = counts;
                 bestCell = cell;
@@ -188,21 +211,21 @@ function getMostCompleteCell(cells) {
 }
 // return unused cell that is part of most finishable four-line patterns, falling back to three and two lines
 function getHottestCell(field, remainingMoves) {
-    let heatmap = getHeatMapOfBestPatterns(field, remainingMoves);
+    var heatmap = getHeatMapOfBestPatterns(field, remainingMoves);
     lastUsedHeatmap = heatmap;
     if (!heatmap) {
         return getMostCompleteCell(field.cells);
     }
-    let baseCells = field.cells;
-    let hotCells = [];
+    var baseCells = field.cells;
+    var hotCells = [];
     do {
-        let maxHeat = Number.NEGATIVE_INFINITY;
-        for (let i = 0; i < baseCells.length; i++) {
-            const cell = baseCells[i];
+        var maxHeat = Number.NEGATIVE_INFINITY;
+        for (var i = 0; i < baseCells.length; i++) {
+            var cell = baseCells[i];
             if (cell.used) {
                 continue;
             }
-            const heat = heatmap[cell.id - 1];
+            var heat = heatmap[cell.id - 1];
             if (heat > maxHeat) {
                 maxHeat = heat;
                 hotCells = [cell];
@@ -211,6 +234,7 @@ function getHottestCell(field, remainingMoves) {
                 hotCells.push(cell);
             }
         }
+        // if we'd break here the chances change to 25.916234889664253, 69.1807044981687, 4.897963604140362, 0.005097008026695527
         if (hotCells.length === 1) {
             break;
         }
@@ -224,38 +248,39 @@ function getHottestCell(field, remainingMoves) {
     } while (true);
     return getMostCompleteCell(hotCells);
 }
-function getHeatMapOfBestPatterns(field, remainingMoves, updateLastUsed = true) {
+function getHeatMapOfBestPatterns(field, remainingMoves, updateLastUsed) {
+    if (updateLastUsed === void 0) { updateLastUsed = true; }
     // get patterns that are finishable with the second to last move (which is the last controllable one)
-    let patterns = allFourLinePatterns.filter(pattern => field.getRemainingMoves(pattern) < remainingMoves);
+    var patterns = allFourLinePatterns.filter(function (pattern) { return field.getRemainingMoves(pattern) < remainingMoves; });
     if (updateLastUsed)
-        lastUsedPatterns = `4-line patterns finishable with less than ${remainingMoves} moves`;
+        lastUsedPatterns = "4-line patterns finishable with less than ".concat(remainingMoves, " moves");
     // fall back to patterns finishable with the last move
     if (patterns.length === 0) {
-        patterns = allFourLinePatterns.filter(pattern => field.getRemainingMoves(pattern) <= remainingMoves);
+        patterns = allFourLinePatterns.filter(function (pattern) { return field.getRemainingMoves(pattern) <= remainingMoves; });
         if (updateLastUsed)
-            lastUsedPatterns = `4-line patterns finishable with at most ${remainingMoves} moves`;
+            lastUsedPatterns = "4-line patterns finishable with at most ".concat(remainingMoves, " moves");
     }
     // fall back to three-line patterns
     if (patterns.length === 0) {
-        patterns = allThreeLinePatterns.filter(pattern => field.getRemainingMoves(pattern) < remainingMoves);
+        patterns = allThreeLinePatterns.filter(function (pattern) { return field.getRemainingMoves(pattern) < remainingMoves; });
         if (updateLastUsed)
-            lastUsedPatterns = `3-line patterns finishable with less than ${remainingMoves} moves`;
+            lastUsedPatterns = "3-line patterns finishable with less than ".concat(remainingMoves, " moves");
     }
     if (patterns.length === 0) {
-        patterns = allThreeLinePatterns.filter(pattern => field.getRemainingMoves(pattern) <= remainingMoves);
+        patterns = allThreeLinePatterns.filter(function (pattern) { return field.getRemainingMoves(pattern) <= remainingMoves; });
         if (updateLastUsed)
-            lastUsedPatterns = `3-line patterns finishable with at most ${remainingMoves} moves`;
+            lastUsedPatterns = "3-line patterns finishable with at most ".concat(remainingMoves, " moves");
     }
     // fall back to two-line patterns
     if (patterns.length === 0) {
-        patterns = allTwoLinePatterns.filter(pattern => field.getRemainingMoves(pattern) < remainingMoves);
+        patterns = allTwoLinePatterns.filter(function (pattern) { return field.getRemainingMoves(pattern) < remainingMoves; });
         if (updateLastUsed)
-            lastUsedPatterns = `2-line patterns finishable with less than ${remainingMoves} moves`;
+            lastUsedPatterns = "2-line patterns finishable with less than ".concat(remainingMoves, " moves");
     }
     if (patterns.length === 0) {
-        patterns = allTwoLinePatterns.filter(pattern => field.getRemainingMoves(pattern) <= remainingMoves);
+        patterns = allTwoLinePatterns.filter(function (pattern) { return field.getRemainingMoves(pattern) <= remainingMoves; });
         if (updateLastUsed)
-            lastUsedPatterns = `2-line patterns finishable with at most ${remainingMoves} moves`;
+            lastUsedPatterns = "2-line patterns finishable with at most ".concat(remainingMoves, " moves");
     }
     if (patterns.length === 0) {
         if (updateLastUsed)
@@ -265,9 +290,10 @@ function getHeatMapOfBestPatterns(field, remainingMoves, updateLastUsed = true) 
     return createHeatmap(patterns);
 }
 function createHeatmap(patterns) {
-    const heatmap = Array(patterns[0].cells.length).fill(0);
-    for (const pattern of patterns) {
-        for (let i = 0; i < pattern.cells.length; i++) {
+    var heatmap = Array(patterns[0].cells.length).fill(0);
+    for (var _i = 0, patterns_1 = patterns; _i < patterns_1.length; _i++) {
+        var pattern = patterns_1[_i];
+        for (var i = 0; i < pattern.cells.length; i++) {
             if (pattern.cells[i].used) {
                 heatmap[i]++;
             }
@@ -275,17 +301,26 @@ function createHeatmap(patterns) {
     }
     return heatmap;
 }
-function createPatterns(targetLines = 4, maxMoves = 16, field = new Field(), line = 1, index = 0, indices = [], patterns = {}) {
+function createPatterns(targetLines, maxMoves, field, line, index, indices, patterns) {
+    if (targetLines === void 0) { targetLines = 4; }
+    if (maxMoves === void 0) { maxMoves = 16; }
+    if (field === void 0) { field = new Field(); }
+    if (line === void 0) { line = 1; }
+    if (index === void 0) { index = 0; }
+    if (indices === void 0) { indices = []; }
+    if (patterns === void 0) { patterns = {}; }
     for (; index < field.lines.length - targetLines + line; index++) {
         indices.push(index);
         if (line === targetLines) {
-            for (const lineIndex of indices) {
-                for (let cellIndex = 0; cellIndex < field.lines[lineIndex].cells.length; cellIndex++) {
+            for (var _i = 0, indices_1 = indices; _i < indices_1.length; _i++) {
+                var lineIndex = indices_1[_i];
+                for (var cellIndex = 0; cellIndex < field.lines[lineIndex].cells.length; cellIndex++) {
                     field.lines[lineIndex].cells[cellIndex].used = true;
                 }
             }
-            let moves = 0;
-            for (const cell of field.cells) {
+            var moves = 0;
+            for (var _a = 0, _b = field.cells; _a < _b.length; _a++) {
+                var cell = _b[_a];
                 if (cell.used) {
                     moves++;
                 }
@@ -305,39 +340,52 @@ function createPatterns(targetLines = 4, maxMoves = 16, field = new Field(), lin
     }
     return patterns;
 }
-const fourLinePatterns = createPatterns(4);
+var fourLinePatterns = createPatterns(4);
 console.assert(Object.keys(fourLinePatterns).length === 3);
-const fourLinePatterns14Moves = fourLinePatterns[14];
-const fourLinePatterns15Moves = fourLinePatterns[15];
-const fourLinePatterns16Moves = fourLinePatterns[16];
-const fourLinePatterns14And15Moves = fourLinePatterns14Moves.concat(fourLinePatterns15Moves);
-const allFourLinePatterns = fourLinePatterns14And15Moves.concat(fourLinePatterns16Moves);
-const threeLinePatterns = createPatterns(3);
+var fourLinePatterns14Moves = fourLinePatterns[14];
+var fourLinePatterns15Moves = fourLinePatterns[15];
+var fourLinePatterns16Moves = fourLinePatterns[16];
+var fourLinePatterns14And15Moves = fourLinePatterns14Moves.concat(fourLinePatterns15Moves);
+var allFourLinePatterns = fourLinePatterns14And15Moves.concat(fourLinePatterns16Moves);
+var threeLinePatterns = createPatterns(3);
 console.assert(Object.keys(threeLinePatterns).length === 3);
-const threeLinePatterns12Moves = threeLinePatterns[12];
-const threeLinePatterns13Moves = threeLinePatterns[13];
-const threeLinePatterns15Moves = threeLinePatterns[15];
-const threeLinePatterns12And13Moves = threeLinePatterns12Moves.concat(threeLinePatterns13Moves);
-const allThreeLinePatterns = threeLinePatterns12And13Moves.concat(threeLinePatterns15Moves);
-const allTwoLinePatterns = [].concat(...Object.values(createPatterns(2)));
-const strategies = [
+var threeLinePatterns12Moves = threeLinePatterns[12];
+var threeLinePatterns13Moves = threeLinePatterns[13];
+var threeLinePatterns15Moves = threeLinePatterns[15];
+var threeLinePatterns12And13Moves = threeLinePatterns12Moves.concat(threeLinePatterns13Moves);
+var allThreeLinePatterns = threeLinePatterns12And13Moves.concat(threeLinePatterns15Moves);
+var allTwoLinePatterns = (_a = []).concat.apply(_a, Object.values(createPatterns(2)));
+var strategies = [
     {
         name: 'hottest cell in remaining patterns, then most complete',
-        makeMove(field, move, remainingMoves) {
-            getHottestCell(field, remainingMoves).use();
+        getNextMove: function (field, move, remainingMoves) {
+            return getHottestCell(field, remainingMoves);
         },
+        totalRounds: 0,
         fourLineWins: 0,
         threeLineWins: 0,
         twoLineWins: 0,
         oneLineWins: 0
+        // chances: 25.928858236068525, 69.27970465677986, 4.785619263850059, 0.0058178433015672595
+        /*
+            actual data:
+            24 games    (100.0%)
+            4 lines: 10 ( 41.7%)
+            3 lines: 13 ( 54.2%)
+            2 lines: 1  (  4.2%)
+        */
     },
 ];
-function benchmark() {
-    const field = new Field();
+function randomBenchmark() {
+    var field = new Field();
     console.time();
-    for (let i = 1; i <= 1000000; i++) {
-        for (const strat of strategies) {
-            field.go(16, strat.makeMove);
+    var _loop_1 = function (i) {
+        for (var _i = 0, strategies_1 = strategies; _i < strategies_1.length; _i++) {
+            var strat = strategies_1[_i];
+            for (var move = 1; move <= 16; move += 2) {
+                strat.getNextMove(field, move, 16 - move + 1).use();
+                getRandomFreeCell(field.cells).use();
+            }
             if (field.linesCompleted >= 4) {
                 strat.fourLineWins++;
             }
@@ -357,44 +405,145 @@ function benchmark() {
             field.reset();
         }
         if (i % 10000 === 0) {
-            console.log(strategies.map(strat => strat.name + ': ' + strat.fourLineWins / i * 100 + ', ' + strat.threeLineWins / i * 100 + ', ' + strat.twoLineWins / i * 100 + ', ' + strat.oneLineWins / i * 100).join('\n'));
+            console.log(strategies.map(function (strat) { return strat.name + ': ' + strat.fourLineWins / i * 100 + ', ' + strat.threeLineWins / i * 100 + ', ' + strat.twoLineWins / i * 100 + ', ' + strat.oneLineWins / i * 100; }).join('\n'));
             console.timeLog();
         }
+    };
+    // the accuracy after 1M is about +/-0.04 percent point, after 10M +/- 0.01 percent point and after 100M +/- 0.005
+    for (var i = 1; i <= 10000000; i++) {
+        _loop_1(i);
     }
     console.timeEnd();
 }
-const field = new Field();
-const LABEL_PREFIX = 'l';
-const CHECKBOX_PREFIX = 'cb';
-const SPAN_PREFIX = 's';
-let lastMarkedId = null;
-let heatmapActive = false;
-let lastUsedPatterns = 'None';
-let lastUsedHeatmap = null;
-function initWebsite() {
-    let html = `
-    <div style="font-family: Arial, sans-serif">
-        <div style="display: grid;grid-template-columns: min-content 1fr; margin-bottom: 20px;">
-            <div style="display: inline-grid;grid-template-columns: 80px 80px 80px 80px 80px;grid-template-rows: 80px 80px 80px 80px 80px; border-top: 0.5px solid grey; border-left: 0.5px solid grey">
-    `;
-    for (const cell of field.cells) {
-        html += `<label id="${LABEL_PREFIX + cell.id}" style="padding: 12px 0 0 27px; border-right: 0.5px solid grey; border-bottom: 0.5px solid grey">${cell.id.toString().padStart(2, '0')}<br><input id="${CHECKBOX_PREFIX + cell.id}" type="checkbox" onClick="checkboxClicked(this, ${cell.id})"/><br><span id="${SPAN_PREFIX + cell.id}"></span></label>`;
+function fullBenchmark() {
+    var workerpool = require('workerpool');
+    if (!workerpool.isMainThread) {
+        workerpool.worker({ benchmarkWorker: benchmarkWorker });
+        return;
     }
-    html += `
-            </div>
-            <div style="margin-left: 20px">
-                <p><span style="font-weight: bold">Current move: </span><span id="move"></span></p>
-                <p><span style="font-weight: bold">Next step: </span><span id="message"></span></p>
-                <p><span style="font-weight: bold">Current pattern library: </span><span id="usedPatterns"></span></p>
-                <p><button onclick="reset()">Reset</button><label style="margin-left: 20px"><input type="checkbox" onclick="toggleHeatmap(this)">Show heatmap</label></p>
-            </div>
-        </div>
-        <p>This tool finds all finishable 4-line patterns and calculates a heatmap of the most used cells. Afterwards it suggests your next best move by marking the checkbox in blue color.</p>
-        <p>If multiple cells have the same heat it picks the cell that has the most active siblings on the lines crossing it. If no 4-line patterns are possible anymore it switches to 3-line and then 2-line patterns.</p>
-        <p>This strategy leads to roughly 25.9% 4-line wins, 69.3% 3-line wins and 4.8% 2-line wins.</p>
-        <p>Completed lines are marked in green. If you enable the heatmap you can see the count of remaining patterns each cell is part of.</p>
-    </div>
-    `;
+    var pool = workerpool.pool(__filename, { minWorkers: 'max', maxWorkers: workerpool.cpus });
+    var strategyPromises = [];
+    var _loop_2 = function (strategyIndex) {
+        var promises = [];
+        var strategy = strategies[strategyIndex];
+        var partialResults = [];
+        var totalRoundsTarget = 5109350400;
+        var startTime = Date.now();
+        var _loop_3 = function (i) {
+            var partitionIndex = i;
+            var promise_1 = pool.exec('benchmarkWorker', [strategyIndex, partitionIndex], {
+                on: function (payload) {
+                    partialResults[partitionIndex] = payload;
+                    var result = accumulatePartialResults(partialResults);
+                    if (result.totalRounds % 1000000 === 0) {
+                        // rounds per ms
+                        var speed = result.totalRounds / (Date.now() - startTime);
+                        var eta = (totalRoundsTarget - result.totalRounds) / speed;
+                        var hours = Math.floor(eta / 3600000);
+                        var minutes = Math.floor((eta - hours * 3600000) / 60000);
+                        console.log("".concat(hours, " h ").concat(minutes, " m (").concat(speed, " rounds/ms)"));
+                    }
+                }
+            });
+            promises.push(promise_1);
+        };
+        for (var i = 0; i < 25; i++) {
+            _loop_3(i);
+        }
+        var promise = Promise.all(promises).then(function (results) {
+            var result = accumulatePartialResults(results);
+            Object.assign(strategy, result);
+        });
+        strategyPromises.push(promise);
+    };
+    for (var strategyIndex = 0; strategyIndex < strategies.length; strategyIndex++) {
+        _loop_2(strategyIndex);
+    }
+    Promise.all(strategyPromises).then(function () {
+        console.log(strategies.map(function (s) { return s.name + ': ' + s.fourLineWins / s.totalRounds * 100 + ', ' + s.threeLineWins / s.totalRounds * 100 + ', ' + s.twoLineWins / s.totalRounds * 100 + ', ' + s.oneLineWins / s.totalRounds * 100; }).join('\n'));
+    });
+}
+function accumulatePartialResults(partialResults) {
+    return partialResults.reduce(function (result, partialResult) {
+        var _a, _b, _c, _d, _e;
+        result.totalRounds = ((_a = result.totalRounds) !== null && _a !== void 0 ? _a : 0) + partialResult.totalRounds;
+        result.fourLineWins = ((_b = result.fourLineWins) !== null && _b !== void 0 ? _b : 0) + partialResult.fourLineWins;
+        result.threeLineWins = ((_c = result.threeLineWins) !== null && _c !== void 0 ? _c : 0) + partialResult.threeLineWins;
+        result.twoLineWins = ((_d = result.twoLineWins) !== null && _d !== void 0 ? _d : 0) + partialResult.twoLineWins;
+        result.oneLineWins = ((_e = result.oneLineWins) !== null && _e !== void 0 ? _e : 0) + partialResult.oneLineWins;
+        return result;
+    }, {});
+}
+function benchmarkWorker(strategyIndex, partitionIndex, maxMoves, field, move, result) {
+    if (maxMoves === void 0) { maxMoves = 16; }
+    if (field === void 0) { field = new Field(); }
+    if (move === void 0) { move = 1; }
+    var workerpool = require('workerpool');
+    if (move === 1) {
+        result = {
+            totalRounds: 0,
+            fourLineWins: 0,
+            threeLineWins: 0,
+            twoLineWins: 0,
+            oneLineWins: 0
+        };
+    }
+    var nextCell = strategies[strategyIndex].getNextMove(field, move, maxMoves - move + 1);
+    nextCell.use();
+    move++;
+    for (var i = (move === 2 ? partitionIndex : 0); i < (move === 2 ? partitionIndex + 1 : field.cells.length); i++) {
+        var cell = field.cells[i];
+        if (cell.used) {
+            continue;
+        }
+        cell.use();
+        if (move === maxMoves) {
+            result.totalRounds++;
+            if (field.linesCompleted >= 4) {
+                result.fourLineWins++;
+            }
+            else if (field.linesCompleted === 3) {
+                result.threeLineWins++;
+            }
+            else if (field.linesCompleted === 2) {
+                result.twoLineWins++;
+            }
+            else if (field.linesCompleted === 1) {
+                result.oneLineWins++;
+            }
+            else {
+                console.log('Worse than 1.');
+                field.print();
+            }
+            if (result.totalRounds % 100000 === 0) {
+                workerpool.workerEmit(result);
+            }
+        }
+        else {
+            benchmarkWorker(strategyIndex, partitionIndex, maxMoves, field, move + 1, result);
+        }
+        cell.used = false;
+    }
+    nextCell.used = false;
+    if (move === 2) {
+        return result;
+    }
+}
+var field = new Field();
+var LABEL_PREFIX = 'l';
+var CHECKBOX_PREFIX = 'cb';
+var SPAN_PREFIX = 's';
+var lastMarkedId = null;
+var heatmapActive = false;
+var lastUsedPatterns = 'None';
+var lastUsedHeatmap = null;
+function initWebsite() {
+    var html = "\n    <div style=\"font-family: Arial, sans-serif\">\n        <div style=\"display: grid;grid-template-columns: min-content 1fr; margin-bottom: 20px;\">\n            <div style=\"display: inline-grid;grid-template-columns: 80px 80px 80px 80px 80px;grid-template-rows: 80px 80px 80px 80px 80px; border-top: 0.5px solid grey; border-left: 0.5px solid grey\">\n    ";
+    for (var _i = 0, _a = field.cells; _i < _a.length; _i++) {
+        var cell = _a[_i];
+        html += "<label id=\"".concat(LABEL_PREFIX + cell.id, "\" style=\"padding: 12px 0 0 27px; border-right: 0.5px solid grey; border-bottom: 0.5px solid grey\">").concat(cell.id.toString().padStart(2, '0'), "<br><input id=\"").concat(CHECKBOX_PREFIX + cell.id, "\" type=\"checkbox\" onClick=\"checkboxClicked(this, ").concat(cell.id, ")\"/><br><span id=\"").concat(SPAN_PREFIX + cell.id, "\"></span></label>");
+    }
+    html += "\n            </div>\n            <div style=\"margin-left: 20px\">\n                <p><span style=\"font-weight: bold\">Current move: </span><span id=\"move\"></span></p>\n                <p><span style=\"font-weight: bold\">Next step: </span><span id=\"message\"></span></p>\n                <p><span style=\"font-weight: bold\">Current pattern library: </span><span id=\"usedPatterns\"></span></p>\n                <p><button onclick=\"reset()\">Reset</button><label style=\"margin-left: 20px\"><input type=\"checkbox\" onclick=\"toggleHeatmap(this)\">Show heatmap</label></p>\n            </div>\n        </div>\n        <p>This tool finds all finishable 4-line patterns and calculates a heatmap of the most used cells. Afterwards it suggests your next best move by marking the checkbox in blue color.</p>\n        <p>If multiple cells have the same heat it picks the cell that has the most active siblings on the lines crossing it. If no 4-line patterns are possible anymore it switches to 3-line and then 2-line patterns.</p>\n        <p>This strategy leads to roughly 25.9% 4-line wins, 69.3% 3-line wins and 4.8% 2-line wins. The relatively high proportion of 2-line wins is because this tool prioritizes 4-line wins over everything else because they give disproportionally higher rewards.</p>\n        <p>Completed lines are marked in green. If you enable the heatmap you can see the count of remaining patterns each cell is part of.</p>\n    </div>\n    ";
     document.body.innerHTML = html;
     reset();
 }
@@ -408,7 +557,8 @@ function toggleHeatmap(checkbox) {
     }
 }
 function clearHeatmap() {
-    for (const cell of field.cells) {
+    for (var _i = 0, _a = field.cells; _i < _a.length; _i++) {
+        var cell = _a[_i];
         if (!cell.used && cell.id !== lastMarkedId) {
             setCheckboxColor(cell.id, 'white');
         }
@@ -416,19 +566,20 @@ function clearHeatmap() {
     }
 }
 function drawHeatmap() {
-    const heatmap = lastUsedHeatmap;
+    var heatmap = lastUsedHeatmap;
     if (!heatmap) {
         clearHeatmap();
         return;
     }
-    const min = Math.min(...heatmap);
-    const max = Math.max(...heatmap);
-    for (const cell of field.cells) {
+    var min = Math.min.apply(Math, heatmap);
+    var max = Math.max.apply(Math, heatmap);
+    for (var _i = 0, _a = field.cells; _i < _a.length; _i++) {
+        var cell = _a[_i];
         setHeatmapInfo(cell.id, null);
         if (!cell.used) {
             if (cell.id !== lastMarkedId) {
-                const colorShade = 100 - 100 * (heatmap[cell.id - 1] - min) / (max - min);
-                setCheckboxColor(cell.id, `rgb(255, ${100 + colorShade}, ${100 + colorShade})`);
+                var colorShade = 100 - 100 * (heatmap[cell.id - 1] - min) / (max - min);
+                setCheckboxColor(cell.id, "rgb(255, ".concat(100 + colorShade, ", ").concat(100 + colorShade, ")"));
             }
             setHeatmapInfo(cell.id, heatmap[cell.id - 1]);
         }
@@ -436,7 +587,8 @@ function drawHeatmap() {
 }
 function reset() {
     field.reset();
-    for (const cell of field.cells) {
+    for (var _i = 0, _a = field.cells; _i < _a.length; _i++) {
+        var cell = _a[_i];
         document.getElementById(CHECKBOX_PREFIX + cell.id).checked = false;
         setCheckboxColor(cell.id, 'white');
     }
@@ -457,16 +609,18 @@ function checkboxClicked(checkbox, id) {
         checkbox.checked = false;
         return;
     }
-    const cell = field.cells[id - 1];
+    var cell = field.cells[id - 1];
     cell.used = checkbox.checked;
     if (lastMarkedId) {
         setCheckboxColor(lastMarkedId, 'white');
         lastMarkedId = null;
     }
     setCheckboxColor(id, 'lightgray');
-    for (const line of cell.lines) {
+    for (var _i = 0, _a = cell.lines; _i < _a.length; _i++) {
+        var line = _a[_i];
         if (line.isComplete) {
-            for (const lineCell of line.cells) {
+            for (var _b = 0, _c = line.cells; _b < _c.length; _b++) {
+                var lineCell = _c[_b];
                 setCheckboxColor(lineCell.id, 'lightgreen');
             }
         }
@@ -486,7 +640,7 @@ function checkboxClicked(checkbox, id) {
     displayMoveNumber(field.usedCellCount + 1);
 }
 function markNextMove() {
-    const nextId = getHottestCell(field, 16 - field.usedCellCount).id;
+    var nextId = getHottestCell(field, 16 - field.usedCellCount).id;
     setCheckboxColor(nextId, 'cornflowerblue');
     lastMarkedId = nextId;
     if (heatmapActive) {
@@ -510,8 +664,8 @@ function displayMessage(text) {
 function displayUsedPatterns(patternName) {
     document.getElementById('usedPatterns').innerText = patternName;
 }
-window.onload = initWebsite;
 
+window.onload = initWebsite;
         </script>
     </head>
     <body>
