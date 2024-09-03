@@ -91,16 +91,20 @@ class Field {
         }
     }
 
-    getRemainingMoves(targetPattern: Field) {
-        let remainingMoves = 0;
+    finishable(targetPattern: Field, maxMoves: number) {
+        let movesNeeded = 0;
 
         for (let i = 0; i < this.cells.length; i++) {
             if (targetPattern.cells[i].used && !this.cells[i].used) {
-                remainingMoves++;
+                movesNeeded++;
+
+                if (movesNeeded > maxMoves) {
+                    return false;
+                }
             }
         }
 
-        return remainingMoves;
+        return true;
     }
 
     clone() {
@@ -243,8 +247,6 @@ function getHottestCell(field: Field, remainingMoves: number) {
             }
         }
 
-        // if we'd break here the chances change to 25.916234889664253, 69.1807044981687, 4.897963604140362, 0.005097008026695527
-
         if (hotCells.length === 1) {
             break;
         }
@@ -252,7 +254,7 @@ function getHottestCell(field: Field, remainingMoves: number) {
         remainingMoves--;
         heatmap = getHeatMapOfBestPatterns(field, remainingMoves, false);
 
-        if (!heatmap) {
+        if (!heatmap || remainingMoves === 1) {
             break;
         }
 
@@ -264,40 +266,26 @@ function getHottestCell(field: Field, remainingMoves: number) {
 }
 
 function getHeatMapOfBestPatterns(field: Field, remainingMoves: number, updateLastUsed = true) {
-    // get patterns that are finishable with the second to last move (which is the last controllable one)
-    let patterns = allFourLinePatterns.filter(pattern => field.getRemainingMoves(pattern) < remainingMoves);
-    if (updateLastUsed) lastUsedPatterns = `4-line patterns finishable with less than ${remainingMoves} moves`;
-
-    // fall back to patterns finishable with the last move
-    if (patterns.length === 0) {
-        patterns = allFourLinePatterns.filter(pattern => field.getRemainingMoves(pattern) <= remainingMoves);
-        if (updateLastUsed) lastUsedPatterns = `4-line patterns finishable with at most ${remainingMoves} moves`;
-    }
+    let patterns: Field[] = [];
     
-    // fall back to three-line patterns
-    if (patterns.length === 0) {
-        patterns = allThreeLinePatterns.filter(pattern => field.getRemainingMoves(pattern) < remainingMoves);
-        if (updateLastUsed) lastUsedPatterns = `3-line patterns finishable with less than ${remainingMoves} moves`;
-    }
+    for (let i = 0; i < patternLibs.length; i++) {
+        const patternLib = patternLibs[i];
+        patterns = patternLib.patterns.filter(pattern => field.finishable(pattern, remainingMoves - patternLib.remainingMovesOffset));
 
-    if (patterns.length === 0) {
-        patterns = allThreeLinePatterns.filter(pattern => field.getRemainingMoves(pattern) <= remainingMoves);
-        if (updateLastUsed) lastUsedPatterns = `3-line patterns finishable with at most ${remainingMoves} moves`;
-    }
+        if (patterns.length > 0) {
+            if (updateLastUsed) {
+                lastUsedPatterns = `${patternLib.lines}-line patterns finishable with ${16 - patternLib.remainingMovesOffset} moves`;
+            }
 
-    // fall back to two-line patterns
-    if (patterns.length === 0) {
-        patterns = allTwoLinePatterns.filter(pattern => field.getRemainingMoves(pattern) < remainingMoves);
-        if (updateLastUsed) lastUsedPatterns = `2-line patterns finishable with less than ${remainingMoves} moves`;
-    }
-
-    if (patterns.length === 0) {
-        patterns = allTwoLinePatterns.filter(pattern => field.getRemainingMoves(pattern) <= remainingMoves);
-        if (updateLastUsed) lastUsedPatterns = `2-line patterns finishable with at most ${remainingMoves} moves`;
+            break;
+        }
     }
 
     if (patterns.length === 0) {      
-        if (updateLastUsed) lastUsedPatterns = 'None - only 1-line solutions possible.'          
+        if (updateLastUsed) {
+            lastUsedPatterns = 'None - only 1-line solutions possible.';
+        }
+
         return null;
     }
 
@@ -376,6 +364,44 @@ const allThreeLinePatterns = threeLinePatterns12And13Moves.concat(threeLinePatte
 
 const allTwoLinePatterns = ([] as Field[]).concat(...Object.values(createPatterns(2)));
 
+const patternLibs = [
+    {
+        lines: 4,
+        patterns: allFourLinePatterns,
+        remainingMovesOffset: 2
+    },
+    {
+        lines: 4,
+        patterns: allFourLinePatterns,
+        remainingMovesOffset: 1
+    },
+    {
+        lines: 4,
+        patterns: allFourLinePatterns,
+        remainingMovesOffset: 0
+    },
+    {
+        lines: 3,
+        patterns: allThreeLinePatterns,
+        remainingMovesOffset: 1
+    },
+    {
+        lines: 3,
+        patterns: allThreeLinePatterns,
+        remainingMovesOffset: 0
+    },
+    {
+        lines: 2,
+        patterns: allTwoLinePatterns,
+        remainingMovesOffset: 1
+    },
+    {
+        lines: 2,
+        patterns: allTwoLinePatterns,
+        remainingMovesOffset: 0
+    },
+];
+
 const strategies = [
     {
         name: 'hottest cell in remaining patterns, then most complete',
@@ -387,13 +413,17 @@ const strategies = [
         threeLineWins: 0,
         twoLineWins: 0,
         oneLineWins: 0
-        // chances: 25.928858236068525, 69.27970465677986, 4.785619263850059, 0.0058178433015672595
+        // chances: 26.046919839359617, 69.16415871575377, 4.783306288799452, 0.005615156087161295
         /*
             actual data:
             24 games    (100.0%)
             4 lines: 10 ( 41.7%)
             3 lines: 13 ( 54.2%)
             2 lines: 1  (  4.2%)
+
+            14 games    (100.0%)
+            4 lines: 5  ( 35.7%)
+            3 lines: 9  ( 64.3%)
         */
     },
 ];
@@ -613,8 +643,8 @@ function initWebsite() {
         </div>
         <p>This tool finds all finishable 4-line patterns and calculates a heatmap of the most used cells. Afterwards it suggests your next best move by marking the checkbox in blue color.</p>
         <p>If multiple cells have the same heat it picks the cell that has the most active siblings on the lines crossing it. If no 4-line patterns are possible anymore it switches to 3-line and then 2-line patterns.</p>
-        <p>This strategy leads to roughly 25.9% 4-line wins, 69.3% 3-line wins and 4.8% 2-line wins. The relatively high proportion of 2-line wins is because this tool prioritizes 4-line wins over everything else because they give disproportionally higher rewards.</p>
-        <p>Completed lines are marked in green. If you enable the heatmap you can see the count of remaining patterns each cell is part of.</p>
+        <p>This strategy leads to roughly 26.0% 4-line wins, 69.2% 3-line wins and 4.8% 2-line wins. The relatively high proportion of 2-line wins is because this tool prioritizes 4-line wins over everything else because they give disproportionally higher rewards.</p>
+        <p>Completed lines are marked in green. If you enable the heatmap you can see the count of remaining patterns each cell is part of within the current pattern library.</p>
     </div>
     `;
     document.body.innerHTML = html;
@@ -767,5 +797,6 @@ function displayUsedPatterns(patternName: string) {
     document.getElementById('usedPatterns')!.innerText = patternName;
 }
 
-fullBenchmark();
+randomBenchmark();
+// fullBenchmark();
 // window.onload = initWebsite;

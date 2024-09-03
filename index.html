@@ -99,14 +99,17 @@ var Field = /** @class */ (function () {
             cell.used = false;
         }
     };
-    Field.prototype.getRemainingMoves = function (targetPattern) {
-        var remainingMoves = 0;
+    Field.prototype.finishable = function (targetPattern, maxMoves) {
+        var movesNeeded = 0;
         for (var i = 0; i < this.cells.length; i++) {
             if (targetPattern.cells[i].used && !this.cells[i].used) {
-                remainingMoves++;
+                movesNeeded++;
+                if (movesNeeded > maxMoves) {
+                    return false;
+                }
             }
         }
-        return remainingMoves;
+        return true;
     };
     Field.prototype.clone = function () {
         var clone = new Field(this.size);
@@ -234,13 +237,12 @@ function getHottestCell(field, remainingMoves) {
                 hotCells.push(cell);
             }
         }
-        // if we'd break here the chances change to 25.916234889664253, 69.1807044981687, 4.897963604140362, 0.005097008026695527
         if (hotCells.length === 1) {
             break;
         }
         remainingMoves--;
         heatmap = getHeatMapOfBestPatterns(field, remainingMoves, false);
-        if (!heatmap) {
+        if (!heatmap || remainingMoves === 1) {
             break;
         }
         baseCells = hotCells;
@@ -250,41 +252,26 @@ function getHottestCell(field, remainingMoves) {
 }
 function getHeatMapOfBestPatterns(field, remainingMoves, updateLastUsed) {
     if (updateLastUsed === void 0) { updateLastUsed = true; }
-    // get patterns that are finishable with the second to last move (which is the last controllable one)
-    var patterns = allFourLinePatterns.filter(function (pattern) { return field.getRemainingMoves(pattern) < remainingMoves; });
-    if (updateLastUsed)
-        lastUsedPatterns = "4-line patterns finishable with less than ".concat(remainingMoves, " moves");
-    // fall back to patterns finishable with the last move
-    if (patterns.length === 0) {
-        patterns = allFourLinePatterns.filter(function (pattern) { return field.getRemainingMoves(pattern) <= remainingMoves; });
-        if (updateLastUsed)
-            lastUsedPatterns = "4-line patterns finishable with at most ".concat(remainingMoves, " moves");
-    }
-    // fall back to three-line patterns
-    if (patterns.length === 0) {
-        patterns = allThreeLinePatterns.filter(function (pattern) { return field.getRemainingMoves(pattern) < remainingMoves; });
-        if (updateLastUsed)
-            lastUsedPatterns = "3-line patterns finishable with less than ".concat(remainingMoves, " moves");
-    }
-    if (patterns.length === 0) {
-        patterns = allThreeLinePatterns.filter(function (pattern) { return field.getRemainingMoves(pattern) <= remainingMoves; });
-        if (updateLastUsed)
-            lastUsedPatterns = "3-line patterns finishable with at most ".concat(remainingMoves, " moves");
-    }
-    // fall back to two-line patterns
-    if (patterns.length === 0) {
-        patterns = allTwoLinePatterns.filter(function (pattern) { return field.getRemainingMoves(pattern) < remainingMoves; });
-        if (updateLastUsed)
-            lastUsedPatterns = "2-line patterns finishable with less than ".concat(remainingMoves, " moves");
+    var patterns = [];
+    var _loop_1 = function (i) {
+        var patternLib = patternLibs[i];
+        patterns = patternLib.patterns.filter(function (pattern) { return field.finishable(pattern, remainingMoves - patternLib.remainingMovesOffset); });
+        if (patterns.length > 0) {
+            if (updateLastUsed) {
+                lastUsedPatterns = "".concat(patternLib.lines, "-line patterns finishable with ").concat(16 - patternLib.remainingMovesOffset, " moves");
+            }
+            return "break";
+        }
+    };
+    for (var i = 0; i < patternLibs.length; i++) {
+        var state_1 = _loop_1(i);
+        if (state_1 === "break")
+            break;
     }
     if (patterns.length === 0) {
-        patterns = allTwoLinePatterns.filter(function (pattern) { return field.getRemainingMoves(pattern) <= remainingMoves; });
-        if (updateLastUsed)
-            lastUsedPatterns = "2-line patterns finishable with at most ".concat(remainingMoves, " moves");
-    }
-    if (patterns.length === 0) {
-        if (updateLastUsed)
+        if (updateLastUsed) {
             lastUsedPatterns = 'None - only 1-line solutions possible.';
+        }
         return null;
     }
     return createHeatmap(patterns);
@@ -355,6 +342,43 @@ var threeLinePatterns15Moves = threeLinePatterns[15];
 var threeLinePatterns12And13Moves = threeLinePatterns12Moves.concat(threeLinePatterns13Moves);
 var allThreeLinePatterns = threeLinePatterns12And13Moves.concat(threeLinePatterns15Moves);
 var allTwoLinePatterns = (_a = []).concat.apply(_a, Object.values(createPatterns(2)));
+var patternLibs = [
+    {
+        lines: 4,
+        patterns: allFourLinePatterns,
+        remainingMovesOffset: 2
+    },
+    {
+        lines: 4,
+        patterns: allFourLinePatterns,
+        remainingMovesOffset: 1
+    },
+    {
+        lines: 4,
+        patterns: allFourLinePatterns,
+        remainingMovesOffset: 0
+    },
+    {
+        lines: 3,
+        patterns: allThreeLinePatterns,
+        remainingMovesOffset: 1
+    },
+    {
+        lines: 3,
+        patterns: allThreeLinePatterns,
+        remainingMovesOffset: 0
+    },
+    {
+        lines: 2,
+        patterns: allTwoLinePatterns,
+        remainingMovesOffset: 1
+    },
+    {
+        lines: 2,
+        patterns: allTwoLinePatterns,
+        remainingMovesOffset: 0
+    },
+];
 var strategies = [
     {
         name: 'hottest cell in remaining patterns, then most complete',
@@ -366,20 +390,24 @@ var strategies = [
         threeLineWins: 0,
         twoLineWins: 0,
         oneLineWins: 0
-        // chances: 25.928858236068525, 69.27970465677986, 4.785619263850059, 0.0058178433015672595
+        // chances: 26.046919839359617, 69.16415871575377, 4.783306288799452, 0.005615156087161295
         /*
             actual data:
             24 games    (100.0%)
             4 lines: 10 ( 41.7%)
             3 lines: 13 ( 54.2%)
             2 lines: 1  (  4.2%)
+
+            14 games    (100.0%)
+            4 lines: 5  ( 35.7%)
+            3 lines: 9  ( 64.3%)
         */
     },
 ];
 function randomBenchmark() {
     var field = new Field();
     console.time();
-    var _loop_1 = function (i) {
+    var _loop_2 = function (i) {
         for (var _i = 0, strategies_1 = strategies; _i < strategies_1.length; _i++) {
             var strat = strategies_1[_i];
             for (var move = 1; move <= 16; move += 2) {
@@ -411,7 +439,7 @@ function randomBenchmark() {
     };
     // the accuracy after 1M is about +/-0.04 percent point, after 10M +/- 0.01 percent point and after 100M +/- 0.005
     for (var i = 1; i <= 10000000; i++) {
-        _loop_1(i);
+        _loop_2(i);
     }
     console.timeEnd();
 }
@@ -423,13 +451,13 @@ function fullBenchmark() {
     }
     var pool = workerpool.pool(__filename, { minWorkers: 'max', maxWorkers: workerpool.cpus });
     var strategyPromises = [];
-    var _loop_2 = function (strategyIndex) {
+    var _loop_3 = function (strategyIndex) {
         var promises = [];
         var strategy = strategies[strategyIndex];
         var partialResults = [];
         var totalRoundsTarget = 5109350400;
         var startTime = Date.now();
-        var _loop_3 = function (i) {
+        var _loop_4 = function (i) {
             var partitionIndex = i;
             var promise_1 = pool.exec('benchmarkWorker', [strategyIndex, partitionIndex], {
                 on: function (payload) {
@@ -448,7 +476,7 @@ function fullBenchmark() {
             promises.push(promise_1);
         };
         for (var i = 0; i < 25; i++) {
-            _loop_3(i);
+            _loop_4(i);
         }
         var promise = Promise.all(promises).then(function (results) {
             var result = accumulatePartialResults(results);
@@ -457,7 +485,7 @@ function fullBenchmark() {
         strategyPromises.push(promise);
     };
     for (var strategyIndex = 0; strategyIndex < strategies.length; strategyIndex++) {
-        _loop_2(strategyIndex);
+        _loop_3(strategyIndex);
     }
     Promise.all(strategyPromises).then(function () {
         console.log(strategies.map(function (s) { return s.name + ': ' + s.fourLineWins / s.totalRounds * 100 + ', ' + s.threeLineWins / s.totalRounds * 100 + ', ' + s.twoLineWins / s.totalRounds * 100 + ', ' + s.oneLineWins / s.totalRounds * 100; }).join('\n'));
@@ -543,7 +571,7 @@ function initWebsite() {
         var cell = _a[_i];
         html += "<label id=\"".concat(LABEL_PREFIX + cell.id, "\" style=\"padding: 12px 0 0 27px; border-right: 0.5px solid grey; border-bottom: 0.5px solid grey\">").concat(cell.id.toString().padStart(2, '0'), "<br><input id=\"").concat(CHECKBOX_PREFIX + cell.id, "\" type=\"checkbox\" onClick=\"checkboxClicked(this, ").concat(cell.id, ")\"/><br><span id=\"").concat(SPAN_PREFIX + cell.id, "\"></span></label>");
     }
-    html += "\n            </div>\n            <div style=\"margin-left: 20px\">\n                <p><span style=\"font-weight: bold\">Current move: </span><span id=\"move\"></span></p>\n                <p><span style=\"font-weight: bold\">Next step: </span><span id=\"message\"></span></p>\n                <p><span style=\"font-weight: bold\">Current pattern library: </span><span id=\"usedPatterns\"></span></p>\n                <p><button onclick=\"reset()\">Reset</button><label style=\"margin-left: 20px\"><input type=\"checkbox\" onclick=\"toggleHeatmap(this)\">Show heatmap</label></p>\n            </div>\n        </div>\n        <p>This tool finds all finishable 4-line patterns and calculates a heatmap of the most used cells. Afterwards it suggests your next best move by marking the checkbox in blue color.</p>\n        <p>If multiple cells have the same heat it picks the cell that has the most active siblings on the lines crossing it. If no 4-line patterns are possible anymore it switches to 3-line and then 2-line patterns.</p>\n        <p>This strategy leads to roughly 25.9% 4-line wins, 69.3% 3-line wins and 4.8% 2-line wins. The relatively high proportion of 2-line wins is because this tool prioritizes 4-line wins over everything else because they give disproportionally higher rewards.</p>\n        <p>Completed lines are marked in green. If you enable the heatmap you can see the count of remaining patterns each cell is part of.</p>\n    </div>\n    ";
+    html += "\n            </div>\n            <div style=\"margin-left: 20px\">\n                <p><span style=\"font-weight: bold\">Current move: </span><span id=\"move\"></span></p>\n                <p><span style=\"font-weight: bold\">Next step: </span><span id=\"message\"></span></p>\n                <p><span style=\"font-weight: bold\">Current pattern library: </span><span id=\"usedPatterns\"></span></p>\n                <p><button onclick=\"reset()\">Reset</button><label style=\"margin-left: 20px\"><input type=\"checkbox\" onclick=\"toggleHeatmap(this)\">Show heatmap</label></p>\n            </div>\n        </div>\n        <p>This tool finds all finishable 4-line patterns and calculates a heatmap of the most used cells. Afterwards it suggests your next best move by marking the checkbox in blue color.</p>\n        <p>If multiple cells have the same heat it picks the cell that has the most active siblings on the lines crossing it. If no 4-line patterns are possible anymore it switches to 3-line and then 2-line patterns.</p>\n        <p>This strategy leads to roughly 26.0% 4-line wins, 69.2% 3-line wins and 4.8% 2-line wins. The relatively high proportion of 2-line wins is because this tool prioritizes 4-line wins over everything else because they give disproportionally higher rewards.</p>\n        <p>Completed lines are marked in green. If you enable the heatmap you can see the count of remaining patterns each cell is part of within the current pattern library.</p>\n    </div>\n    ";
     document.body.innerHTML = html;
     reset();
 }
@@ -666,6 +694,8 @@ function displayUsedPatterns(patternName) {
 }
 
 window.onload = initWebsite;
+
+
         </script>
     </head>
     <body>
