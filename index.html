@@ -50,6 +50,10 @@
             .grid-cell[data-state="bingo"] {
                 background-color: var(--color-bingo);
             }
+
+            .heatmap {
+                color: black;
+            }
         </style>
         <script>
 var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
@@ -696,6 +700,7 @@ function clearHeatmap() {
         var cell = _a[_i];
         if (!cell.used && cell.id !== lastMarkedId) {
             setCheckboxColor(cell.id, "");
+            setCheckboxHeatmap(cell.id, false);
         }
         setHeatmapInfo(cell.id, null);
     }
@@ -715,6 +720,7 @@ function drawHeatmap() {
             if (cell.id !== lastMarkedId) {
                 var colorShade = 100 - 100 * (heatmap[cell.id - 1] - min) / (max - min);
                 setCheckboxColor(cell.id, "rgb(255, ".concat(100 + colorShade, ", ").concat(100 + colorShade, ")"));
+                setCheckboxHeatmap(cell.id, true);
             }
             setHeatmapInfo(cell.id, heatmap[cell.id - 1]);
         }
@@ -794,9 +800,18 @@ function markNextMove() {
 function setCheckboxColor(id, color) {
     document.getElementById(LABEL_PREFIX + id).style.backgroundColor = color;
 }
+function setCheckboxHeatmap(id, toggle) {
+    if (toggle) {
+        document.getElementById(LABEL_PREFIX + id).classList.add("heatmap");
+    } else {
+        document.getElementById(LABEL_PREFIX + id).classList.remove("heatmap");
+    }
+}
 function setCheckboxState(id, state) {
     let checkbox = document.getElementById(LABEL_PREFIX + id);
-    checkbox.style = ""; // remove heatmap color if exists
+    // remove heatmap color if exists
+    checkbox.style = "";
+    setCheckboxHeatmap(id, false);
     checkbox.setAttribute("data-state", state);
 }
 function setHeatmapInfo(id, heat) {
