@@ -1,5 +1,56 @@
 <html>
     <head>
+        <style>
+            [data-theme="light"] {
+                --color-background: white;
+                --color-text: black;
+                --color-marked: lightgray;
+                --color-next: cornflowerblue;
+                --color-bingo: lightgreen;
+                --color-border: grey;
+            }
+
+            [data-theme="dark"] {
+                --color-background: #222;
+                --color-text: white;
+                --color-marked: #555;
+                --color-next: #03346E;
+                --color-bingo: green;
+                --color-border: lightgrey;
+            }
+
+            body {
+                background-color: var(--color-background);
+                color: var(--color-text);
+            }
+
+            .bingo-grid {
+                display: inline-grid; 
+                grid-template-columns: repeat(5, 80px); 
+                grid-template-rows: repeat(5, 80px); 
+                border-top: 0.5px solid var(--color-border); 
+                border-left: 0.5px solid var(--color-border);
+            }
+
+            .grid-cell {
+                background-color: var(--color-background);
+                padding: 12px 0 0 27px; 
+                border-right: 0.5px solid var(--color-border); 
+                border-bottom: 0.5px solid var(--color-border);
+            }
+
+            .grid-cell[data-state="marked"] {
+                background-color: var(--color-marked);
+            }
+
+            .grid-cell[data-state="next"] {
+                background-color: var(--color-next);
+            }
+
+            .grid-cell[data-state="bingo"] {
+                background-color: var(--color-bingo);
+            }
+        </style>
         <script>
 var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
@@ -565,14 +616,70 @@ var lastMarkedId = null;
 var heatmapActive = false;
 var lastUsedPatterns = 'None';
 var lastUsedHeatmap = null;
+const checkboxStates = {
+    MARKED: "marked",
+    NEXT: "next",
+    BINGO: "bingo",
+    NONE: "none",
+}
 function initWebsite() {
-    var html = "\n    <div style=\"font-family: Arial, sans-serif\">\n        <div style=\"display: grid;grid-template-columns: min-content 1fr; margin-bottom: 20px;\">\n            <div style=\"display: inline-grid;grid-template-columns: 80px 80px 80px 80px 80px;grid-template-rows: 80px 80px 80px 80px 80px; border-top: 0.5px solid grey; border-left: 0.5px solid grey\">\n    ";
-    for (var _i = 0, _a = field.cells; _i < _a.length; _i++) {
-        var cell = _a[_i];
-        html += "<label id=\"".concat(LABEL_PREFIX + cell.id, "\" style=\"padding: 12px 0 0 27px; border-right: 0.5px solid grey; border-bottom: 0.5px solid grey\">").concat(cell.id.toString().padStart(2, '0'), "<br><input id=\"").concat(CHECKBOX_PREFIX + cell.id, "\" type=\"checkbox\" onClick=\"checkboxClicked(this, ").concat(cell.id, ")\"/><br><span id=\"").concat(SPAN_PREFIX + cell.id, "\"></span></label>");
-    }
-    html += "\n            </div>\n            <div style=\"margin-left: 20px\">\n                <p><span style=\"font-weight: bold\">Current move: </span><span id=\"move\"></span></p>\n                <p><span style=\"font-weight: bold\">Next step: </span><span id=\"message\"></span></p>\n                <p><span style=\"font-weight: bold\">Current pattern library: </span><span id=\"usedPatterns\"></span></p>\n                <p><button onclick=\"reset()\">Reset</button><label style=\"margin-left: 20px\"><input type=\"checkbox\" onclick=\"toggleHeatmap(this)\">Show heatmap</label></p>\n            </div>\n        </div>\n        <p>This tool finds all finishable 4-line patterns and calculates a heatmap of the most used cells. Afterwards it suggests your next best move by marking the checkbox in blue color.</p>\n        <p>If multiple cells have the same heat it picks the cell that has the most active siblings on the lines crossing it. If no 4-line patterns are possible anymore it switches to 3-line and then 2-line patterns.</p>\n        <p>This strategy leads to roughly 26.0% 4-line wins, 69.2% 3-line wins and 4.8% 2-line wins. The relatively high proportion of 2-line wins is because this tool prioritizes 4-line wins over everything else because they give disproportionally higher rewards.</p>\n        <p>Completed lines are marked in green. If you enable the heatmap you can see the count of remaining patterns each cell is part of within the current pattern library.</p>\n    </div>\n    ";
+    const theme = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    const createCellHTML = (cell) => `
+        <label id="${LABEL_PREFIX + cell.id}" class="grid-cell">
+            ${cell.id.toString().padStart(2, '0')}
+            <br>
+            <input id="${CHECKBOX_PREFIX + cell.id}" type="checkbox" onClick="checkboxClicked(this, ${cell.id})"/>
+            <br>
+            <span id="${SPAN_PREFIX + cell.id}"></span>
+        </label>
+    `;
+
+    const cellHTML = field.cells.map(createCellHTML).join("");
+
+    const sidebarHTML = `
+        <div style="margin-left: 20px">
+            <p><span style="font-weight: bold">Current move: </span><span id="move"></span></p>
+            <p><span style="font-weight: bold">Next step: </span><span id="message"></span></p>
+            <p><span style="font-weight: bold">Current pattern library: </span><span id="usedPatterns"></span></p>
+            <p>
+                <button onclick="reset()">Reset</button>
+                <label style="margin-left: 20px"><input type="checkbox" onclick="toggleHeatmap(this)">Show heatmap</label>
+                <label style="margin-left: 20px"><input type="checkbox" onclick="toggleDarkTheme(this.checked)" checked=${theme == "dark"}>Toggle Dark Mode</label>
+            </p>
+        </div>
+    `;
+
+    const descriptionHTML = `
+        <p>This tool finds all finishable 4-line patterns and calculates a heatmap of the most used cells.
+        Afterwards, it suggests your next best move by marking the checkbox in blue color.</p>
+        <p>If multiple cells have the same heat, it picks the cell that has the most active siblings on the lines crossing it.
+        If no 4-line patterns are possible anymore, it switches to 3-line and then 2-line patterns.</p>
+        <p>This strategy leads to roughly 26.0% 4-line wins, 69.2% 3-line wins, and 4.8% 2-line wins.
+        The relatively high proportion of 2-line wins is because this tool prioritizes 4-line wins over everything else
+        due to their disproportionately higher rewards.</p>
+        <p>Completed lines are marked in green. If you enable the heatmap, you can see the count of remaining patterns
+        each cell is part of within the current pattern library.</p>
+    `;
+
+    const html = `
+        <div style="font-family: Arial, sans-serif">
+            <div style="display: grid; grid-template-columns: min-content 1fr; margin-bottom: 20px;">
+                <div class="bingo-grid">
+                    ${cellHTML}
+                </div>
+                ${sidebarHTML}
+            </div>
+            ${descriptionHTML}
+        </div>
+    `;
+
     document.body.innerHTML = html;
+    if (theme == "light") {
+        toggleDarkTheme(false)
+    }
+    else {
+        toggleDarkTheme(true);
+    }
     reset();
 }
 function toggleHeatmap(checkbox) {
@@ -588,7 +695,7 @@ function clearHeatmap() {
     for (var _i = 0, _a = field.cells; _i < _a.length; _i++) {
         var cell = _a[_i];
         if (!cell.used && cell.id !== lastMarkedId) {
-            setCheckboxColor(cell.id, 'white');
+            setCheckboxColor(cell.id, "");
         }
         setHeatmapInfo(cell.id, null);
     }
@@ -613,12 +720,20 @@ function drawHeatmap() {
         }
     }
 }
+function toggleDarkTheme(toggled) {
+    if (toggled) {
+        document.querySelector("html").setAttribute("data-theme", "dark");
+    } 
+    else {
+        document.querySelector("html").setAttribute("data-theme", "light");
+    }
+}
 function reset() {
     field.reset();
     for (var _i = 0, _a = field.cells; _i < _a.length; _i++) {
         var cell = _a[_i];
         document.getElementById(CHECKBOX_PREFIX + cell.id).checked = false;
-        setCheckboxColor(cell.id, 'white');
+        setCheckboxState(cell.id, checkboxStates.NONE);
     }
     markNextMove();
     if (heatmapActive) {
@@ -640,16 +755,16 @@ function checkboxClicked(checkbox, id) {
     var cell = field.cells[id - 1];
     cell.used = checkbox.checked;
     if (lastMarkedId) {
-        setCheckboxColor(lastMarkedId, 'white');
+        setCheckboxState(lastMarkedId, checkboxStates.NONE);
         lastMarkedId = null;
     }
-    setCheckboxColor(id, 'lightgray');
+    setCheckboxState(id, checkboxStates.MARKED);
     for (var _i = 0, _a = cell.lines; _i < _a.length; _i++) {
         var line = _a[_i];
         if (line.isComplete) {
             for (var _b = 0, _c = line.cells; _b < _c.length; _b++) {
                 var lineCell = _c[_b];
-                setCheckboxColor(lineCell.id, 'lightgreen');
+                setCheckboxState(lineCell.id, checkboxStates.BINGO);
             }
         }
     }
@@ -669,7 +784,7 @@ function checkboxClicked(checkbox, id) {
 }
 function markNextMove() {
     var nextId = getHottestCell(field, 16 - field.usedCellCount).id;
-    setCheckboxColor(nextId, 'cornflowerblue');
+    setCheckboxState(nextId, checkboxStates.NEXT);
     lastMarkedId = nextId;
     if (heatmapActive) {
         drawHeatmap();
@@ -678,6 +793,11 @@ function markNextMove() {
 }
 function setCheckboxColor(id, color) {
     document.getElementById(LABEL_PREFIX + id).style.backgroundColor = color;
+}
+function setCheckboxState(id, state) {
+    let checkbox = document.getElementById(LABEL_PREFIX + id);
+    checkbox.style = ""; // remove heatmap color if exists
+    checkbox.setAttribute("data-state", state);
 }
 function setHeatmapInfo(id, heat) {
     var _a;
