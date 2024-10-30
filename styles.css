@@ -1,0 +1,52 @@
+[data-theme="light"] {
+    --color-background: white;
+    --color-text: black;
+    --color-marked: lightgray;
+    --color-next: cornflowerblue;
+    --color-bingo: lightgreen;
+    --color-border: grey;
+}
+
+[data-theme="dark"] {
+    --color-background: #222;
+    --color-text: white;
+    --color-marked: #555;
+    --color-next: #03346E;
+    --color-bingo: green;
+    --color-border: lightgrey;
+}
+
+body {
+    background-color: var(--color-background);
+    color: var(--color-text);
+}
+
+.bingo-grid {
+    display: inline-grid; 
+    grid-template-columns: repeat(5, 80px); 
+    grid-template-rows: repeat(5, 80px); 
+    border-top: 0.5px solid var(--color-border); 
+    border-left: 0.5px solid var(--color-border);
+}
+
+.grid-cell {
+    padding: 12px 0 0 27px; 
+    border-right: 0.5px solid var(--color-border); 
+    border-bottom: 0.5px solid var(--color-border);
+}
+
+.grid-cell[data-state="marked"] {
+    background-color: var(--color-marked);
+}
+
+.grid-cell[data-state="next"] {
+    background-color: var(--color-next);
+}
+
+.grid-cell[data-state="bingo"] {
+    background-color: var(--color-bingo);
+}
+
+.grid-cell[data-state="heatmap"] {
+    color: black;
+}

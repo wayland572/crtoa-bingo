@@ -616,20 +616,41 @@ const field = new Field();
 const LABEL_PREFIX = 'l';
 const CHECKBOX_PREFIX = 'cb';
 const SPAN_PREFIX = 's';
+const CHECKBOX_STATES = {
+    MARKED: 'marked',
+    NEXT: 'next',
+    BINGO: 'bingo',
+    HEATMAP: 'heatmap',
+    NONE: 'none',
+};
+const THEME = {
+    DARK: 'dark',
+    LIGHT: 'light',
+}
 let lastMarkedId: number | null = null;
 let heatmapActive = false;
 let lastUsedPatterns = 'None';
 let lastUsedHeatmap: number[] | null = null;
 
 function initWebsite() {
+    let theme = window.matchMedia('(prefers-color-scheme: light)').matches ? THEME.LIGHT : THEME.DARK;
     let html = `
     <div style="font-family: Arial, sans-serif">
         <div style="display: grid;grid-template-columns: min-content 1fr; margin-bottom: 20px;">
-            <div style="display: inline-grid;grid-template-columns: 80px 80px 80px 80px 80px;grid-template-rows: 80px 80px 80px 80px 80px; border-top: 0.5px solid grey; border-left: 0.5px solid grey">
+            <div class="bingo-grid">
     `;
 
     for (const cell of field.cells) {
-        html += `<label id="${LABEL_PREFIX + cell.id}" style="padding: 12px 0 0 27px; border-right: 0.5px solid grey; border-bottom: 0.5px solid grey">${cell.id.toString().padStart(2, '0')}<br><input id="${CHECKBOX_PREFIX + cell.id}" type="checkbox" onClick="checkboxClicked(this, ${cell.id})"/><br><span id="${SPAN_PREFIX + cell.id}"></span></label>`;
+        html += `
+        <label id="${LABEL_PREFIX + cell.id}" class="grid-cell">
+            ${cell.id.toString().padStart(2, '0')}
+            <br>
+            <input id="${CHECKBOX_PREFIX + cell.id}" type="checkbox" onClick="checkboxClicked(this, ${cell.id})"/>
+            <br>
+            <span id="${SPAN_PREFIX + cell.id}">
+            </span>
+        </label>
+        `;
     }
 
     html += `
@@ -638,7 +659,11 @@ function initWebsite() {
                 <p><span style="font-weight: bold">Current move: </span><span id="move"></span></p>
                 <p><span style="font-weight: bold">Next step: </span><span id="message"></span></p>
                 <p><span style="font-weight: bold">Current pattern library: </span><span id="usedPatterns"></span></p>
-                <p><button onclick="reset()">Reset</button><label style="margin-left: 20px"><input type="checkbox" onclick="toggleHeatmap(this)">Show heatmap</label></p>
+                <p>
+                    <button onclick="reset()">Reset</button><label style="margin-left: 20px">
+                    <input type="checkbox" onclick="toggleHeatmap(this)">Show heatmap</label>
+                    <label style="margin-left: 20px"><input type="checkbox" onclick="toggleDarkTheme(this.checked)" ${theme === THEME.DARK ? 'checked' : ''}>Toggle Dark Mode</label>
+                </p>
             </div>
         </div>
         <p>This tool finds all finishable 4-line patterns and calculates a heatmap of the most used cells. Afterwards it suggests your next best move by marking the checkbox in blue color.</p>
@@ -648,6 +673,11 @@ function initWebsite() {
     </div>
     `;
     document.body.innerHTML = html;
+    if (theme === THEME.DARK) {
+        toggleDarkTheme(true)
+    } else {
+        toggleDarkTheme(false);
+    }
     reset();
 }
 
@@ -664,7 +694,7 @@ function toggleHeatmap(checkbox: HTMLInputElement) {
 function clearHeatmap() {
     for (const cell of field.cells) {
         if (!cell.used && cell.id !== lastMarkedId) {
-            setCheckboxColor(cell.id, 'white');
+            setCheckboxState(cell.id, CHECKBOX_STATES.NONE);
         }
 
         setHeatmapInfo(cell.id, null);
@@ -689,6 +719,7 @@ function drawHeatmap() {
         if (!cell.used) {
             if (cell.id !== lastMarkedId) {
                 const colorShade = 100 - 100 * (heatmap[cell.id - 1] - min)  / (max - min);
+                setCheckboxState(cell.id, CHECKBOX_STATES.HEATMAP);
                 setCheckboxColor(cell.id, `rgb(255, ${100 + colorShade}, ${100 + colorShade})`);
             }
 
@@ -702,7 +733,7 @@ function reset() {
 
     for (const cell of field.cells) {
         (document.getElementById(CHECKBOX_PREFIX + cell.id) as HTMLInputElement).checked = false;
-        setCheckboxColor(cell.id, 'white');
+        setCheckboxState(cell.id, CHECKBOX_STATES.NONE);
     }
 
     markNextMove();
@@ -713,6 +744,14 @@ function reset() {
 
     displayMoveNumber(1);
     displayMessage('Input your turn. The middle cell (13) is the best start.');
+}
+
+function toggleDarkTheme(toggled: Boolean) {
+    if (toggled) {
+        document.querySelector('html').setAttribute('data-theme', 'dark');
+    } else {
+        document.querySelector('html').setAttribute('data-theme', 'light');
+    }
 }
 
 function checkboxClicked(checkbox: HTMLInputElement, id: number) { 
@@ -733,16 +772,16 @@ function checkboxClicked(checkbox: HTMLInputElement, id: number) {
     cell.used = checkbox.checked;
 
     if (lastMarkedId) {
-        setCheckboxColor(lastMarkedId, 'white');
+        setCheckboxState(lastMarkedId, CHECKBOX_STATES.NONE);
         lastMarkedId = null;
     }
     
-    setCheckboxColor(id, 'lightgray');
+    setCheckboxState(id, CHECKBOX_STATES.MARKED);
 
     for (const line of cell.lines) {
         if (line.isComplete) {
             for (const lineCell of line.cells) {
-                setCheckboxColor(lineCell.id, 'lightgreen');
+                setCheckboxState(lineCell.id, CHECKBOX_STATES.BINGO);
             }
         }
     }
@@ -767,7 +806,7 @@ function checkboxClicked(checkbox: HTMLInputElement, id: number) {
 
 function markNextMove() {
     const nextId = getHottestCell(field, 16 - field.usedCellCount).id;
-    setCheckboxColor(nextId, 'cornflowerblue');
+    setCheckboxState(nextId, CHECKBOX_STATES.NEXT);
     lastMarkedId = nextId;
 
     if (heatmapActive) {
@@ -779,6 +818,15 @@ function markNextMove() {
 
 function setCheckboxColor(id: number, color: string) {
     document.getElementById(LABEL_PREFIX + id)!.style.backgroundColor = color;
+}
+
+function setCheckboxState(id: number, state: string) {
+    let checkbox = document.getElementById(LABEL_PREFIX + id);
+    // remove heatmap color if exists
+    if (checkbox.getAttribute('data-state') === CHECKBOX_STATES.HEATMAP) {
+        setCheckboxColor(id, '');
+    }
+    checkbox.setAttribute('data-state', state);
 }
 
 function setHeatmapInfo(id: number, heat: number | null) {
@@ -797,6 +845,6 @@ function displayUsedPatterns(patternName: string) {
     document.getElementById('usedPatterns')!.innerText = patternName;
 }
 
-randomBenchmark();
+// randomBenchmark();
 // fullBenchmark();
-// window.onload = initWebsite;
+window.onload = initWebsite;
